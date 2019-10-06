@@ -1,0 +1,71 @@
+#!groovy
+
+pipeline {
+
+  agent any
+
+  environment {
+    ANSIBLE_PLAYBOOK = "create-backup.yml"
+
+    DB_PASSWORD = credentials('redmine_db_password')
+
+    GIT_URL_PLAYBOOKS = "${env.GITHUB_ANSIBLE_CENTOS7_REDMINE_CREATEBACKUP}"
+
+    GIT_URL_ANSIBLECFG = "https://github.com/TomonoriMatsumura/ansible-cfg.git"
+
+    SSH_PRIVATE_KEY = "jenkins.ansible"
+
+    WORKING_DIR = "app_redmine_create-backup"
+  }
+
+  parameters {
+    string(
+      name: 'EXTRA_ARGS',
+      defaultValue: '',
+      description: "ansible-playbook command extra arguments"
+    )
+    string(
+      name: 'GIT_BRANCHES_PLAYBOOKS',
+      defaultValue: '*/master',
+      description: "Git branch or tag name or commit id to retrieve of GitHub URL"
+    )
+  }
+
+  stages {
+    stage('Create backup') {
+      steps {
+        build job: 'ansible/playbook',
+          parameters: [
+                        string(
+                          name: 'ANSIBLE_PLAYBOOK',
+                          value: "${env.ANSIBLE_PLAYBOOK}"
+                        ),
+                        string(
+                          name: 'EXTRA_ARGS',
+                          value: "-e 'db_password=${env.DB_PASSWORD}' ${params.EXTRA_ARGS}"
+                        ),
+                        string(
+                          name: 'GIT_BRANCHES_PLAYBOOKS',
+                          value: "${params.GIT_BRANCHES_PLAYBOOKS}"
+                        ),
+                        string(
+                          name: 'GIT_URL_PLAYBOOKS',
+                          value: "${env.GIT_URL_PLAYBOOKS}"
+                        ),
+                        string(
+                          name: 'GIT_URL_ANSIBLECFG',
+                          value: "${env.GIT_URL_ANSIBLECFG}"
+                        ),
+                        string(
+                          name: 'INVENTORY_PARAMS',
+                          value: "-i ${env.ANSIBLE_INVENTORY_FILES_DIR}/hosts -l app-sshd-configured"
+                        ),
+                        string(
+                          name: 'WORKING_DIR',
+                          value: "${env.WORKING_DIR}"
+                        )
+                      ]
+      }
+    }
+  }
+}
