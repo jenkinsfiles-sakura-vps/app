@@ -1,0 +1,89 @@
+#!groovy
+
+pipeline {
+
+  agent any
+
+  environment {
+    ANSIBLE_PLAYBOOK = "put.yml"
+
+    AWS_CREDENTIALS_ID = "${env.AWS_CREDENTIALS_S3}"
+
+    AWS_REGION = "${env.AWS_REGION}"
+
+    AWS_S3_PRAMS = "-e 's3_bucket=${env.AWS_S3_BUCKET_NAME}' \
+                    -e 's3_object_name=redmine-backup.tar.gz' \
+                    -e 'upload_file_path=/tmp/redmine-backup/redmine-backup.tar.gz'"
+
+    GIT_URL_PLAYBOOKS = "${env.GITHUB_ANSIBLE_CENTOS7_AWSS3}"
+
+    GIT_URL_ANSIBLECFG = "https://github.com/TomonoriMatsumura/ansible-cfg.git"
+
+    SSH_PRIVATE_KEY = "jenkins.ansible"
+
+    WORKING_DIR = "app_redmine_put-to-s3"
+  }
+
+  parameters {
+    string(
+      name: 'EXTRA_ARGS',
+      defaultValue: '',
+      description: "ansible-playbook command extra arguments"
+    )
+    string(
+      name: 'GIT_BRANCHES_PLAYBOOKS',
+      defaultValue: '*/master',
+      description: "Git branch or tag name or commit id to retrieve of GitHub URL"
+    )
+  }
+
+  stages {
+    stage('Create backup') {
+      steps {
+        build job: 'ansible/playbook-aws',
+          parameters: [
+                        string(
+                          name: 'ANSIBLE_PLAYBOOK',
+                          value: "${env.ANSIBLE_PLAYBOOK}"
+                        ),
+                        string(
+                          name: 'AWS_CREDENTIALS_ID',
+                          value: "${env.AWS_CREDENTIALS_ID}"
+                        ),
+                        string(
+                          name: 'AWS_REGION',
+                          value: "${env.AWS_REGION}"
+                        ),
+                        string(
+                          name: 'EXTRA_ARGS',
+                          value: "${env.AWS_S3_PRAMS} ${params.EXTRA_ARGS}"
+                        ),
+                        string(
+                          name: 'GIT_BRANCHES_PLAYBOOKS',
+                          value: "${params.GIT_BRANCHES_PLAYBOOKS}"
+                        ),
+                        string(
+                          name: 'GIT_URL_PLAYBOOKS',
+                          value: "${env.GIT_URL_PLAYBOOKS}"
+                        ),
+                        string(
+                          name: 'GIT_URL_ANSIBLECFG',
+                          value: "${env.GIT_URL_ANSIBLECFG}"
+                        ),
+                        string(
+                          name: 'INVENTORY_PARAMS',
+                          value: "-i ${env.ANSIBLE_INVENTORY_FILES_DIR}/hosts -l app-sshd-configured"
+                        ),
+                        string(
+                          name: 'SSH_PRIVATE_KEY',
+                          value: "${env.SSH_PRIVATE_KEY}"
+                        ),
+                        string(
+                          name: 'WORKING_DIR',
+                          value: "${env.WORKING_DIR}"
+                        )
+                      ]
+      }
+    }
+  }
+}
