@@ -61,6 +61,10 @@ pipeline {
                           value: "-i ${env.ANSIBLE_INVENTORY_FILES_DIR}/hosts -l app-sshd-configured"
                         ),
                         string(
+                          name: 'SSH_PRIVATE_KEY',
+                          value: "${env.SSH_PRIVATE_KEY}"
+                        ),
+                        string(
                           name: 'WORKING_DIR',
                           value: "${env.WORKING_DIR}"
                         )
